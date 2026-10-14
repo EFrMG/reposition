@@ -347,16 +347,23 @@ class CacheTests(unittest.TestCase):
         self.assertLess(size, 20000)
 
         second, _ = inspect(
-            "--snapshot-ids-limit", "100", "--snapshot-ids-offset", str(first["indexed_snapshots_next_offset"])
+            "--snapshot-ids-limit", "100",
+            "--snapshot-ids-offset", str(first["indexed_snapshots_next_offset"]),
+            "--checkpoint", first["checksum"],
         )
         self.assertEqual(second["indexed_snapshots"], snapshots[100:200])
         self.assertEqual(second["indexed_snapshots_next_offset"], 200)
 
-        last, _ = inspect("--snapshot-ids-limit", "100", "--snapshot-ids-offset", "4900")
+        last, _ = inspect(
+            "--snapshot-ids-limit", "100", "--snapshot-ids-offset", "4900",
+            "--checkpoint", first["checksum"],
+        )
         self.assertEqual(last["indexed_snapshots"], snapshots[4900:])
         self.assertIsNone(last["indexed_snapshots_next_offset"])
 
         for flags in (
+            ("--snapshot-ids-limit", "10", "--snapshot-ids-offset", "1"),
+            ("--checkpoint", "0" * 64),
             ("--snapshot-ids-limit", "101"),
             ("--snapshot-ids-limit", "-1"),
             ("--snapshot-ids-offset", "1"),
@@ -364,6 +371,22 @@ class CacheTests(unittest.TestCase):
         ):
             with self.subTest(flags=flags), contextlib.redirect_stderr(io.StringIO()):
                 self.assertEqual(main([*arguments, *flags]), 2)
+
+        with sqlite3.connect(self.database) as connection:
+            manifest.pop("checksum")
+            manifest["indexed_snapshots"] = snapshots[:100]
+            manifest["checksum"] = sha256(canonical(manifest))
+            connection.execute("UPDATE manifest SET data=?", (canonical(manifest),))
+
+        with contextlib.redirect_stderr(io.StringIO()) as error:
+            self.assertEqual(
+                main([
+                    *arguments, "--snapshot-ids-limit", "100", "--snapshot-ids-offset", "100",
+                    "--checkpoint", first["checksum"],
+                ]),
+                2,
+            )
+        self.assertIn("checkpoint changed", error.getvalue())
 
     def test_failed_build_keeps_previous_index_and_cleans_temporaries(self):
         before = self.database.read_bytes()
@@ -404,6 +427,22 @@ class CacheTests(unittest.TestCase):
             )
 
     def test_corpus_membership_and_progress_are_exact(self):
+        plan = json.loads((self.root / "corpora" / (self.corpus + ".plan.json")).read_text())
+        plan.pop("checksum")
+        plan["profile"] = "pr-checks"
+        plan = sealed(plan)
+        checks_corpus = plan["checksum"]
+        (self.root / "corpora" / (checks_corpus + ".plan.json")).write_text(canonical(plan))
+        state = self.state()
+        state.pop("checksum")
+        state["plan_id"] = checks_corpus
+        (self.root / "corpora" / (checks_corpus + ".state.json")).write_text(canonical(sealed(state)))
+        CacheIndex.build(self.source, self.database, corpus=checks_corpus, replace=True)
+        with CacheIndex(self.database) as index:
+            checks = index.query(self.source, "terminal", corpus=checks_corpus, components=("checks",))
+            self.assertTrue(checks["items"])
+            self.assertEqual(checks["coverage"]["selected_members"], 4)
+
         CacheIndex.build(self.source, self.database, corpus=self.corpus, replace=True)
         with CacheIndex(self.database) as index:
             first = index.query(self.source, "terminal", corpus=self.corpus, limit=1)

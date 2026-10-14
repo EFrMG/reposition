@@ -121,6 +121,7 @@ def parser() -> argparse.ArgumentParser:
     cache_retrieve.add_argument(
         "--checkpoint", required=True, help="index checkpoint from discovery"
     )
+    cache_info.add_argument("--checkpoint", help="manifest checksum from the first metadata page")
     cache_info.add_argument(
         "--snapshot-ids-limit",
         type=int,
@@ -241,6 +242,7 @@ def main(argv: list[str] | None = None) -> int:
                             corpus=args.corpus,
                             snapshot_ids_limit=args.snapshot_ids_limit,
                             snapshot_ids_offset=args.snapshot_ids_offset,
+                            checkpoint=args.checkpoint,
                         )
             sys.stdout.write(encode_response(output))
             return 0

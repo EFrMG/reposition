@@ -1070,12 +1070,18 @@ class CacheIndex:
         corpus: str | None = None,
         snapshot_ids_limit: int = 0,
         snapshot_ids_offset: int = 0,
+        checkpoint: str | None = None,
     ):
         """Inspect identity-bound index metadata without auditing source payloads or freshness."""
         _limit(snapshot_ids_limit, "snapshot_ids_limit", 100, 0)
         _limit(snapshot_ids_offset, "snapshot_ids_offset", 2**63 - 1, 0)
         if snapshot_ids_offset and not snapshot_ids_limit:
             raise ValueError("snapshot_ids_offset requires snapshot_ids_limit")
+        if snapshot_ids_offset and checkpoint is None:
+            raise ValueError("snapshot_ids_offset requires checkpoint")
+        if checkpoint is not None and checkpoint != self.manifest["checksum"]:
+            raise ValueError("index metadata checkpoint changed")
+
         self._identity(source)
         if snapshot is not None or corpus is not None:
             self._selection(snapshot, corpus)

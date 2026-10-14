@@ -70,7 +70,7 @@ UTF-8 byte budget. Derived indexes live beside the acquisition cache and have
 their own storage ceiling.
 
 See the [workflow and contracts](docs/cache-integration.md), including resource
-limits and an optional `bin/cache` integration patch. This API
+limits and the maintained triage-o-mator `bin/cache` bridge. This API
 keeps acquisition and approvals with the caller; real-cache and independent
 review evaluation remain the next qualification steps.
 

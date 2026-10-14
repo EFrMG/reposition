@@ -50,7 +50,7 @@ comment, field or diff region. Its default starts at the matched unit; an explic
 `--byte-offset 0` starts at that source boundary. Follow a fragment's returned
 `continuation` parameters to read further without changing source selection.
 
-An optional [triage-o-mator bridge](../integrations/triage-o-mator/README.md)
+The optional [triage-o-mator maintained bridge](../integrations/triage-o-mator/README.md)
 provides `bin/cache search-index`, `query`, `retrieve` and `search-info`, while
 preserving existing literal search and readers when Reposition is absent.
 
@@ -65,7 +65,10 @@ The `reposition.cache-info.v2` response gives `indexed_snapshot_count` and
 omits `indexed_snapshots` by default. Consumers of the v1 full list must opt
 into pagination. Use `--snapshot-ids-limit N` (maximum 100) to request IDs in
 sorted order, and pass the returned
-`indexed_snapshots_next_offset` as `--snapshot-ids-offset` for the next page.
+`indexed_snapshots_next_offset` as `--snapshot-ids-offset` for the next page,
+with the first page's manifest `checksum` as `--checkpoint`. Nonzero offsets
+require this checkpoint; any supplied checkpoint must match the current manifest
+checksum. Replacement therefore rejects continuation from an older index.
 A null next offset means the list is complete. The manifest still retains the
 complete checksummed set of IDs.
 
