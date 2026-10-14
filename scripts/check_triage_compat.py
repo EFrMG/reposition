@@ -262,8 +262,11 @@ print(json.dumps({'snapshot':manifest['snapshot_id'],'corpus':corpus,'checks_cor
             "upstream_published_objects_and_corpus": True,
             "legacy_search_without_reposition": True,
             "pre_index_state": pre_index_state,
-            "missing_optional_package_actionable": pre_index_state == "missing-package",
-            "missing_index_reported": pre_index_state == "missing-index",
+            **(
+                {"missing_optional_package_actionable": True}
+                if pre_index_state == "missing-package"
+                else {"missing_index_reported": True}
+            ),
             "owner_created_pr_checks_corpus_readable": True,
             "install_identity_and_cache_override_guards": True,
             "search_info_identity_and_scope_guards": True,
