@@ -356,8 +356,10 @@ def validate_metadata(run, job, source, entry, run_id, attempt, job_id):
         or job.get("head_sha") != entry["head_sha"]
         or job.get("url") != api_url(host, f"{prefix}/actions/jobs/{job_id}")
         or job.get("check_run_url") != api_url(host, f"{prefix}/check-runs/{entry['data']['id']}")
+        or "run_attempt" in job
+        and (type(job["run_attempt"]) is not int or job["run_attempt"] != attempt)
     ):
-        raise ValueError("CI job differs from the selected check, run or head")
+        raise ValueError("CI job differs from the selected check, run attempt or head")
     if job.get("status") != "completed" or job.get("conclusion") not in FAILURES:
         raise ValueError("CI logs require a completed failed job")
 
@@ -868,5 +870,9 @@ ANSI = re.compile(r"\x1b(?:\[[0-?]*[ -/]*[@-~]|\][^\x07\x1b\r\n]*(?:\x07|\x1b\\)
 
 
 def search_text(component, locator, text):
-    """Normalize only CI postings; citable projections retain original bytes."""
-    return ANSI.sub(" ", text) if component == "ci_logs" and "segment_index" in locator else text
+    """Mask CI escapes without moving code points; citable projections retain raw bytes."""
+    return (
+        ANSI.sub(lambda match: " " * len(match.group()), text)
+        if component == "ci_logs" and "segment_index" in locator
+        else text
+    )

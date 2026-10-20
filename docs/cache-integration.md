@@ -162,8 +162,8 @@ both snapshot IDs remain in fragment metadata. Checksums verify retained content
 not the authenticity of external provenance or current GitHub state.
 
 Raw base64 segment bytes must decode as strict UTF-8 to be searchable. ANSI
-escapes are replaced by spaces only in FTS postings and verified posting
-eligibility, so colored words remain discoverable. Stored projections and cited
+escapes are masked with spaces for FTS matching and excerpt placement, so
+colored words remain discoverable within short excerpts. Stored projections and cited
 excerpts preserve original ANSI/control characters, hashes and offsets; no
 normalized search-text offsets are presented as source coordinates. Unsupported non-UTF-8 segments are counted and omitted. Segment
 locators use `ci-segment-utf8`, with offsets relative to the retained segment,

@@ -1,8 +1,8 @@
 # triage-o-mator integration
 
 triage-o-mator maintains its optional Reposition bridge in
-[`bin/_reposition.py`](https://github.com/EFrMG/triage-o-mator/blob/main/bin/_reposition.py).
-Its [installation and supported-build guide](https://github.com/EFrMG/triage-o-mator/blob/main/docs/reposition.md)
+[`bin/_reposition.py`](https://github.com/EFrMG/triage-o-mator/blob/master/bin/_reposition.py).
+Its [installation and supported-build guide](https://github.com/EFrMG/triage-o-mator/blob/master/docs/reposition.md)
 owns the pinned engine version, bundle installation and bridge configuration.
 Use that guide for the build supported by your triage-o-mator checkout.
 Reposition does not carry a second bridge implementation or installation patch.

@@ -77,9 +77,11 @@ def _sync(directory: Path) -> None:
             os.close(descriptor)
 
 
-def _preview(text: str, query: str, maximum: int) -> dict[str, Any]:
+def _preview(
+    text: str, query: str, maximum: int, *, match_text: str | None = None
+) -> dict[str, Any]:
     raw = text.encode("utf-8")
-    span = _match_span(text, query) if query else None
+    span = _match_span(text if match_text is None else match_text, query) if query else None
     start = 0
     if span:
         match_start = len(text[: span[0]].encode("utf-8"))
@@ -770,7 +772,12 @@ class CacheIndex:
 
     @staticmethod
     def _fragment(data, identifier, score, text, query, maximum, max_age):
-        preview = _preview(text, query, maximum)
+        preview = _preview(
+            text,
+            query,
+            maximum,
+            match_text=ci_logs.search_text(data["component"], data["locator"], text),
+        )
         preview["start"] += data["locator"]["start"]
         preview["end"] += data["locator"]["start"]
         preview["offset_unit"] = data["locator"]["coordinate_space"]

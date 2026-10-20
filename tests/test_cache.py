@@ -981,6 +981,25 @@ class NativeCILogsTests(unittest.TestCase):
         self.pointer.unlink()
         self.assertTrue(self.query()["items"])
 
+        # ANSI matching must also place a short excerpt around a distant colored error.
+        import base64
+
+        raw = ("pré🙂\n" * 80 + self.log_text).encode()
+        self.packet["segments"][0].update(
+            end_byte=100 + len(raw),
+            end_line=86,
+            content_base64=base64.b64encode(raw).decode(),
+        )
+        self.packet.update(observed_bytes=100 + len(raw), observed_lines=86)
+        self.save_packet()
+        self.build(replace=True, components=("ci_logs",))
+        excerpt = self.query("error", fragment_bytes=64)["items"][0]["fragments"][0]["excerpt"]
+        self.assertIn("error", excerpt["text"])
+        self.assertGreater(excerpt["start"], 0)
+        self.assertEqual(raw[excerpt["start"]:excerpt["end"]].decode(), excerpt["text"])
+        self.assertEqual(excerpt["sha256"], sha256(excerpt["text"]))
+        self.assertEqual(excerpt["original_start_byte"], 100 + excerpt["start"])
+
     def test_partial_non_utf8_unavailable_and_ordinary_component_isolation(self):
         import base64
 
@@ -1032,6 +1051,17 @@ class NativeCILogsTests(unittest.TestCase):
             self.query()
 
     def test_packet_binding_and_segment_validation_and_limits(self):
+        for field in ("job", "membership"):
+            for attempt in (3, True, None, "2"):
+                with self.subTest(field=field, attempt=attempt):
+                    saved = self.packet[field]
+                    self.packet[field] = dict(saved, run_attempt=attempt)
+                    self.save_packet()
+                    with self.assertRaisesRegex(ValueError, "run attempt"):
+                        self.build(components=("ci_logs",))
+                    self.packet[field] = saved
+        self.packet["job"] = dict(self.packet["job"], run_attempt=2)
+        self.packet["membership"] = dict(self.packet["membership"], run_attempt=2)
         for key, changed in (
             ("head_sha", "f" * 40),
             ("check_id", 99),
